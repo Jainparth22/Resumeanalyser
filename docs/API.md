@@ -19,14 +19,24 @@ Returns two values: `[report_text, result]`. Integrations should use `result` (J
 
 ```jsonc
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "scores": {
-    "overall": 63.4,             // 0-100, weighted blend
-    "semantic": 71.2,            // calibrated embedding similarity
+    "overall": 63.4,             // 0-100 (see "scorer")
+    "scorer": "learned",         // "learned" (fitted weights) or "legacy" (hand weights)
+    "semantic": 71.2,            // calibrated whole-document embedding similarity
     "semantic_raw_cosine": 0.7285,
-    "coverage": 58.3,            // % of JD requirements found
+    "coverage": 58.3,            // % of JD skills/keywords found in the resume
+    "requirement_coverage": 61.0, // mean cross-encoder evidence score over JD requirements
     "quality": 52.0              // resume writing signals
   },
+  "requirements": [              // one entry per JD requirement, with the resume line backing it
+    {
+      "requirement": "Experience with PyTorch",
+      "evidence": "Built models using PyTorch and scikit-learn",
+      "score": 0.81,             // 0-1 cross-encoder score
+      "status": "met"            // "met" (>=0.5) | "partial" (>=0.2) | "missing"
+    }
+  ],
   "confirmed_skills": {          // vetted taxonomy: high precision
     "matched": ["Python", "SQL"],
     "missing": ["PyTorch"],

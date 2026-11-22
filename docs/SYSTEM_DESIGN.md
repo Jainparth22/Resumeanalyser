@@ -39,11 +39,12 @@ Stateless, single process, CPU-only, models loaded once at startup. Fine for a f
 | Long-document handling | **[done]** | Chunk + mean-pool instead of silent 512-token truncation |
 | Score calibration | **[done, heuristic]** | Linear rescale of cosine (0.45-0.85 → 0-100). Replace with a learned calibrator (isotonic / Platt) once labelled data exists |
 | Precision-first skill matching | **[done]** | Taxonomy tier with ambiguity filtering and exact-case short terms; learned tier is explicitly labelled *unverified* |
-| Evaluation set | **[next, highest value]** | 100-300 labelled (resume, JD, human match 1-5) pairs. Report Spearman correlation, skill-extraction precision/recall on hand-annotated resumes. Without this every other change is guesswork. Track in CI so regressions fail the build |
-| Learned scoring weights | **[later]** | Replace hand weights `0.45/0.35/0.20` with logistic/ordinal regression on the eval set |
-| Better retrieval model | **[later]** | Compare `bge-small` vs `bge-base`, `e5`, `gte`, and a cross-encoder reranker on JD-requirement ↔ resume-bullet pairs (more accurate than whole-document cosine) |
+| Evaluation set | **[done, v1; needs real human labels]** | `eval/`: 54 pairs, ablation (Spearman, pairwise accuracy), leave-one-resume-out CV. Labels are author/AI-written and the pairs easy, so treat results as indicative. Next: independent re-rating, harder pairs, skill-extraction precision/recall on annotated resumes, run in CI so regressions fail the build |
+| Learned scoring weights | **[done, v1]** | Ridge regression on 4 features, cross-validated; `weights.json` is used automatically, deleting it falls back to the legacy blend. Retrain whenever features, models or labels change |
+| Requirement-level matching | **[done]** | JD requirements ↔ resume lines: bi-encoder top-3 retrieval, cross-encoder rerank, best line returned as evidence. Reranker choice was empirical: MS-MARCO MiniLM scored obviously-relevant pairs ≈ 0 (question→passage model), `bge-reranker-base` was very strict and a 1.1 GB download, `stsb-distilroberta-base` gave graded, usable scores |
+| Compare embedding models | **[later]** | `bge-base`, `e5`, `gte` against the same eval table |
 | Section-aware matching | **[later]** | Parse resume into sections; weight skills found in *Experience* above a bare *Skills* list, since claims with evidence are stronger |
-| Explainability | **[next]** | Return the resume sentence that supports each matched skill and the closest-but-insufficient sentence for each missing one |
+| Explainability | **[done for requirements]** | Each JD requirement returns its best resume line + met/partial/missing. Not yet per taxonomy skill |
 | Skill-level inference | **[later]** | Years / proficiency cues ("5 yrs", "led", "familiar with") to distinguish expert from beginner |
 | Fairness & bias | **[next]** | Audit for proxies (names, schools, gaps, gendered words). Keep the tool advisory; never position it as an automated screener. Document this in a model card |
 | Drift & monitoring | **[later]** | The taxonomy goes stale as tools appear. Log (privacy-safe) unrecognised high-frequency Tier 2 phrases → candidates to add to the taxonomy; re-run evals on every taxonomy/model update |

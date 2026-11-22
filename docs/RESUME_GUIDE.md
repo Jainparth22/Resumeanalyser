@@ -43,7 +43,7 @@ Add real numbers once you have them: Space likes/visits, number of API users or 
 
 ## Before you publish the claim: checklist
 - [ ] Space is public and loads; README shows license MIT
-- [ ] `YOUR_HF_USERNAME` placeholders replaced with the real Space id
+- [x] Space id filled in everywhere (parthjain/ResumeAnalyser)
 - [ ] GitHub repo and Space are in sync; `pytest` passes
 - [ ] You can explain every file in the repo without reading it
 - [ ] Optional but strong: eval set + a one-paragraph results section in the README

@@ -22,6 +22,8 @@ tags:
 
 Open-source (MIT) resume-vs-job-description analyzer. Paste a resume and a job description and get a match score, the skills you have and are missing, resume-quality signals and concrete suggestions. It runs as a web UI **and** as a free API you can call from your own project.
 
+**Live demo:** https://huggingface.co/spaces/parthjain/ResumeAnalyser
+
 Originally built for the Hugging Face x IITM workshop and now maintained as an open-source project.
 
 ## How it works
@@ -71,7 +73,7 @@ pip install gradio_client
 ```python
 from gradio_client import Client
 
-client = Client("YOUR_HF_USERNAME/ResumeAnalyser")   # <- the Space id
+client = Client("parthjain/ResumeAnalyser")   # <- the Space id
 report_text, result = client.predict(
     "Python developer, built NLP models with PyTorch, improved accuracy by 12%.",
     "We need an ML engineer with Python, PyTorch and NLP experience.",
@@ -82,11 +84,11 @@ print(result["scores"]["overall"], result["confirmed_skills"]["missing"])
 
 ### 3. API (curl / any language)
 ```bash
-curl -s -X POST https://YOUR_HF_USERNAME-resumeanalyser.hf.space/gradio_api/call/analyze \
+curl -s -X POST https://parthjain-resumeanalyser.hf.space/gradio_api/call/analyze \
   -H "Content-Type: application/json" \
   -d '{"data": ["<resume text>", "<job description>"]}'
 # -> {"event_id": "abc123"}
-curl -N https://YOUR_HF_USERNAME-resumeanalyser.hf.space/gradio_api/call/analyze/abc123
+curl -N https://parthjain-resumeanalyser.hf.space/gradio_api/call/analyze/abc123
 ```
 
 Full request/response schema, limits, error handling and integration patterns: **[docs/API.md](docs/API.md)**.

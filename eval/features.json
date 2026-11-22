@@ -1,0 +1,600 @@
+{
+ "embed_model": "BAAI/bge-small-en-v1.5",
+ "reranker_model": "cross-encoder/stsb-distilroberta-base",
+ "rows": [
+  {
+   "resume_id": "ml_senior",
+   "jd_id": "ml_engineer",
+   "rating": 5,
+   "features": {
+    "cosine": 0.8336431384086609,
+    "coverage": 0.8333333333333334,
+    "req_coverage": 0.4579229414463043,
+    "quality": 0.8693000000000001
+   }
+  },
+  {
+   "resume_id": "ml_senior",
+   "jd_id": "data_analyst",
+   "rating": 3,
+   "features": {
+    "cosine": 0.6448832750320435,
+    "coverage": 0.3333333333333333,
+    "req_coverage": 0.25808740556240084,
+    "quality": 0.8693000000000001
+   }
+  },
+  {
+   "resume_id": "ml_senior",
+   "jd_id": "frontend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6315582394599915,
+    "coverage": 0.19047619047619047,
+    "req_coverage": 0.2003193512558937,
+    "quality": 0.8693000000000001
+   }
+  },
+  {
+   "resume_id": "ml_senior",
+   "jd_id": "backend",
+   "rating": 3,
+   "features": {
+    "cosine": 0.7020663022994995,
+    "coverage": 0.5,
+    "req_coverage": 0.36868981420993807,
+    "quality": 0.8693000000000001
+   }
+  },
+  {
+   "resume_id": "ml_senior",
+   "jd_id": "devops",
+   "rating": 2,
+   "features": {
+    "cosine": 0.6846184730529785,
+    "coverage": 0.4,
+    "req_coverage": 0.31583858728408815,
+    "quality": 0.8693000000000001
+   }
+  },
+  {
+   "resume_id": "ml_senior",
+   "jd_id": "data_engineer",
+   "rating": 3,
+   "features": {
+    "cosine": 0.7177146673202515,
+    "coverage": 0.36363636363636365,
+    "req_coverage": 0.2847836881875992,
+    "quality": 0.8693000000000001
+   }
+  },
+  {
+   "resume_id": "ml_junior",
+   "jd_id": "ml_engineer",
+   "rating": 3,
+   "features": {
+    "cosine": 0.726351261138916,
+    "coverage": 0.7222222222222222,
+    "req_coverage": 0.4038889229297638,
+    "quality": 0.3475
+   }
+  },
+  {
+   "resume_id": "ml_junior",
+   "jd_id": "data_analyst",
+   "rating": 3,
+   "features": {
+    "cosine": 0.661048173904419,
+    "coverage": 0.2222222222222222,
+    "req_coverage": 0.22883519232273103,
+    "quality": 0.3475
+   }
+  },
+  {
+   "resume_id": "ml_junior",
+   "jd_id": "frontend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5892685651779175,
+    "coverage": 0.09523809523809523,
+    "req_coverage": 0.12386951968073845,
+    "quality": 0.3475
+   }
+  },
+  {
+   "resume_id": "ml_junior",
+   "jd_id": "backend",
+   "rating": 2,
+   "features": {
+    "cosine": 0.627400815486908,
+    "coverage": 0.05,
+    "req_coverage": 0.17575736343860626,
+    "quality": 0.3475
+   }
+  },
+  {
+   "resume_id": "ml_junior",
+   "jd_id": "devops",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6032810211181641,
+    "coverage": 0.0,
+    "req_coverage": 0.1767764374613762,
+    "quality": 0.3475
+   }
+  },
+  {
+   "resume_id": "ml_junior",
+   "jd_id": "data_engineer",
+   "rating": 2,
+   "features": {
+    "cosine": 0.6585333347320557,
+    "coverage": 0.22727272727272727,
+    "req_coverage": 0.2517135739326477,
+    "quality": 0.3475
+   }
+  },
+  {
+   "resume_id": "data_analyst",
+   "jd_id": "ml_engineer",
+   "rating": 2,
+   "features": {
+    "cosine": 0.6543567776679993,
+    "coverage": 0.2222222222222222,
+    "req_coverage": 0.2426759958267212,
+    "quality": 0.7239
+   }
+  },
+  {
+   "resume_id": "data_analyst",
+   "jd_id": "data_analyst",
+   "rating": 5,
+   "features": {
+    "cosine": 0.8592921495437622,
+    "coverage": 0.8333333333333334,
+    "req_coverage": 0.48569143414497373,
+    "quality": 0.7239
+   }
+  },
+  {
+   "resume_id": "data_analyst",
+   "jd_id": "frontend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5837877988815308,
+    "coverage": 0.047619047619047616,
+    "req_coverage": 0.14660978317260742,
+    "quality": 0.7239
+   }
+  },
+  {
+   "resume_id": "data_analyst",
+   "jd_id": "backend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6700820922851562,
+    "coverage": 0.1,
+    "req_coverage": 0.17072141468524932,
+    "quality": 0.7239
+   }
+  },
+  {
+   "resume_id": "data_analyst",
+   "jd_id": "devops",
+   "rating": 1,
+   "features": {
+    "cosine": 0.576359748840332,
+    "coverage": 0.0,
+    "req_coverage": 0.09189053922891617,
+    "quality": 0.7239
+   }
+  },
+  {
+   "resume_id": "data_analyst",
+   "jd_id": "data_engineer",
+   "rating": 3,
+   "features": {
+    "cosine": 0.754785418510437,
+    "coverage": 0.22727272727272727,
+    "req_coverage": 0.33906700760126113,
+    "quality": 0.7239
+   }
+  },
+  {
+   "resume_id": "frontend",
+   "jd_id": "ml_engineer",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6069110035896301,
+    "coverage": 0.1111111111111111,
+    "req_coverage": 0.16296328604221344,
+    "quality": 0.6905
+   }
+  },
+  {
+   "resume_id": "frontend",
+   "jd_id": "data_analyst",
+   "rating": 1,
+   "features": {
+    "cosine": 0.572850227355957,
+    "coverage": 0.1111111111111111,
+    "req_coverage": 0.21171959787607192,
+    "quality": 0.6905
+   }
+  },
+  {
+   "resume_id": "frontend",
+   "jd_id": "frontend",
+   "rating": 5,
+   "features": {
+    "cosine": 0.8547967672348022,
+    "coverage": 0.8095238095238095,
+    "req_coverage": 0.49951779246330263,
+    "quality": 0.6905
+   }
+  },
+  {
+   "resume_id": "frontend",
+   "jd_id": "backend",
+   "rating": 2,
+   "features": {
+    "cosine": 0.7213075757026672,
+    "coverage": 0.2,
+    "req_coverage": 0.24894284158945085,
+    "quality": 0.6905
+   }
+  },
+  {
+   "resume_id": "frontend",
+   "jd_id": "devops",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6746982932090759,
+    "coverage": 0.1,
+    "req_coverage": 0.14397481828927994,
+    "quality": 0.6905
+   }
+  },
+  {
+   "resume_id": "frontend",
+   "jd_id": "data_engineer",
+   "rating": 1,
+   "features": {
+    "cosine": 0.61566162109375,
+    "coverage": 0.045454545454545456,
+    "req_coverage": 0.12221510708332062,
+    "quality": 0.6905
+   }
+  },
+  {
+   "resume_id": "backend",
+   "jd_id": "ml_engineer",
+   "rating": 2,
+   "features": {
+    "cosine": 0.6636428833007812,
+    "coverage": 0.3333333333333333,
+    "req_coverage": 0.16676881164312363,
+    "quality": 0.7633
+   }
+  },
+  {
+   "resume_id": "backend",
+   "jd_id": "data_analyst",
+   "rating": 2,
+   "features": {
+    "cosine": 0.6506925821304321,
+    "coverage": 0.16666666666666666,
+    "req_coverage": 0.1941319704055786,
+    "quality": 0.7633
+   }
+  },
+  {
+   "resume_id": "backend",
+   "jd_id": "frontend",
+   "rating": 2,
+   "features": {
+    "cosine": 0.7067998647689819,
+    "coverage": 0.3333333333333333,
+    "req_coverage": 0.2873664855957031,
+    "quality": 0.7633
+   }
+  },
+  {
+   "resume_id": "backend",
+   "jd_id": "backend",
+   "rating": 5,
+   "features": {
+    "cosine": 0.8622193932533264,
+    "coverage": 0.9,
+    "req_coverage": 0.6249590992927552,
+    "quality": 0.7633
+   }
+  },
+  {
+   "resume_id": "backend",
+   "jd_id": "devops",
+   "rating": 3,
+   "features": {
+    "cosine": 0.6999863386154175,
+    "coverage": 0.4,
+    "req_coverage": 0.3096941113471985,
+    "quality": 0.7633
+   }
+  },
+  {
+   "resume_id": "backend",
+   "jd_id": "data_engineer",
+   "rating": 3,
+   "features": {
+    "cosine": 0.7281430959701538,
+    "coverage": 0.3181818181818182,
+    "req_coverage": 0.26272581368684766,
+    "quality": 0.7633
+   }
+  },
+  {
+   "resume_id": "devops",
+   "jd_id": "ml_engineer",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6389978528022766,
+    "coverage": 0.16666666666666666,
+    "req_coverage": 0.09889369085431099,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "devops",
+   "jd_id": "data_analyst",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5786028504371643,
+    "coverage": 0.0,
+    "req_coverage": 0.12442298084497452,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "devops",
+   "jd_id": "frontend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6357520222663879,
+    "coverage": 0.09523809523809523,
+    "req_coverage": 0.13051126524806023,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "devops",
+   "jd_id": "backend",
+   "rating": 3,
+   "features": {
+    "cosine": 0.6815151572227478,
+    "coverage": 0.2,
+    "req_coverage": 0.19567812010645866,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "devops",
+   "jd_id": "devops",
+   "rating": 5,
+   "features": {
+    "cosine": 0.8719671964645386,
+    "coverage": 0.95,
+    "req_coverage": 0.5439348936080932,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "devops",
+   "jd_id": "data_engineer",
+   "rating": 2,
+   "features": {
+    "cosine": 0.7002087831497192,
+    "coverage": 0.22727272727272727,
+    "req_coverage": 0.19034552425146103,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "data_eng",
+   "jd_id": "ml_engineer",
+   "rating": 3,
+   "features": {
+    "cosine": 0.6912344694137573,
+    "coverage": 0.2777777777777778,
+    "req_coverage": 0.23632492423057555,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "data_eng",
+   "jd_id": "data_analyst",
+   "rating": 4,
+   "features": {
+    "cosine": 0.7154477834701538,
+    "coverage": 0.3333333333333333,
+    "req_coverage": 0.2289410948753357,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "data_eng",
+   "jd_id": "frontend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6076046228408813,
+    "coverage": 0.09523809523809523,
+    "req_coverage": 0.1543789967894554,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "data_eng",
+   "jd_id": "backend",
+   "rating": 3,
+   "features": {
+    "cosine": 0.6956904530525208,
+    "coverage": 0.3,
+    "req_coverage": 0.3145484536886215,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "data_eng",
+   "jd_id": "devops",
+   "rating": 2,
+   "features": {
+    "cosine": 0.7223269939422607,
+    "coverage": 0.3,
+    "req_coverage": 0.2652268946170807,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "data_eng",
+   "jd_id": "data_engineer",
+   "rating": 5,
+   "features": {
+    "cosine": 0.8680343627929688,
+    "coverage": 0.8636363636363636,
+    "req_coverage": 0.5037186443805695,
+    "quality": 0.7966
+   }
+  },
+  {
+   "resume_id": "unrelated",
+   "jd_id": "ml_engineer",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5188727378845215,
+    "coverage": 0.0,
+    "req_coverage": 0.0802210435271263,
+    "quality": 0.6607999999999999
+   }
+  },
+  {
+   "resume_id": "unrelated",
+   "jd_id": "data_analyst",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5699161291122437,
+    "coverage": 0.0,
+    "req_coverage": 0.07020611986517906,
+    "quality": 0.6607999999999999
+   }
+  },
+  {
+   "resume_id": "unrelated",
+   "jd_id": "frontend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5401508212089539,
+    "coverage": 0.047619047619047616,
+    "req_coverage": 0.060738205909729004,
+    "quality": 0.6607999999999999
+   }
+  },
+  {
+   "resume_id": "unrelated",
+   "jd_id": "backend",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5372479557991028,
+    "coverage": 0.1,
+    "req_coverage": 0.07808080539107323,
+    "quality": 0.6607999999999999
+   }
+  },
+  {
+   "resume_id": "unrelated",
+   "jd_id": "devops",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5669307112693787,
+    "coverage": 0.0,
+    "req_coverage": 0.05689210444688797,
+    "quality": 0.6607999999999999
+   }
+  },
+  {
+   "resume_id": "unrelated",
+   "jd_id": "data_engineer",
+   "rating": 1,
+   "features": {
+    "cosine": 0.5165534019470215,
+    "coverage": 0.045454545454545456,
+    "req_coverage": 0.07248903997242451,
+    "quality": 0.6607999999999999
+   }
+  },
+  {
+   "resume_id": "fullstack",
+   "jd_id": "ml_engineer",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6065345406532288,
+    "coverage": 0.1111111111111111,
+    "req_coverage": 0.15035540908575057,
+    "quality": 0.6178
+   }
+  },
+  {
+   "resume_id": "fullstack",
+   "jd_id": "data_analyst",
+   "rating": 1,
+   "features": {
+    "cosine": 0.6191731095314026,
+    "coverage": 0.2222222222222222,
+    "req_coverage": 0.20907165259122848,
+    "quality": 0.6178
+   }
+  },
+  {
+   "resume_id": "fullstack",
+   "jd_id": "frontend",
+   "rating": 4,
+   "features": {
+    "cosine": 0.7527543306350708,
+    "coverage": 0.47619047619047616,
+    "req_coverage": 0.3182507514953613,
+    "quality": 0.6178
+   }
+  },
+  {
+   "resume_id": "fullstack",
+   "jd_id": "backend",
+   "rating": 4,
+   "features": {
+    "cosine": 0.7242274880409241,
+    "coverage": 0.4,
+    "req_coverage": 0.33423947989940644,
+    "quality": 0.6178
+   }
+  },
+  {
+   "resume_id": "fullstack",
+   "jd_id": "devops",
+   "rating": 2,
+   "features": {
+    "cosine": 0.706549882888794,
+    "coverage": 0.2,
+    "req_coverage": 0.2514053612947464,
+    "quality": 0.6178
+   }
+  },
+  {
+   "resume_id": "fullstack",
+   "jd_id": "data_engineer",
+   "rating": 2,
+   "features": {
+    "cosine": 0.6681767702102661,
+    "coverage": 0.18181818181818182,
+    "req_coverage": 0.16084209829568863,
+    "quality": 0.6178
+   }
+  }
+ ]
+}

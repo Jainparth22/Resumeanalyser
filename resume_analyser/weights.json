@@ -1,0 +1,16 @@
+{
+  "intercept": -2.5879853447648142,
+  "coef": {
+    "cosine": 6.001754579730908,
+    "coverage": 2.0860334015977657,
+    "req_coverage": 1.5123009402941545,
+    "quality": -0.18969685022283864
+  },
+  "meta": {
+    "trained_on": "54 author-labelled pairs",
+    "ridge_lambda": 1.0,
+    "cv_spearman": 0.9091,
+    "embed_model": "BAAI/bge-small-en-v1.5",
+    "reranker_model": "cross-encoder/stsb-distilroberta-base"
+  }
+}

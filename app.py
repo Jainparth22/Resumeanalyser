@@ -1,95 +1,98 @@
-import json
+"""AI Resume & Job Match Analyzer -- Gradio UI + public API.
+
+Pure logic lives in the `resume_analyser` package (tested without ML models);
+this file wires it to the embedding model, KeyBERT and the Gradio interface.
+"""
+
 import os
 import re
 
 import gradio as gr
-from sentence_transformers import SentenceTransformer, util
+import numpy as np
 from keybert import KeyBERT
 from rapidfuzz import fuzz
-from flashtext import KeywordProcessor
+from sentence_transformers import SentenceTransformer, util
+
+from resume_analyser import __version__
+from resume_analyser.quality import resume_quality_signals
+from resume_analyser.ratelimit import RateLimitExceeded, SlidingWindowRateLimiter
+from resume_analyser.taxonomy import load_default_taxonomy
 
 # -------------------------------
-# Load Models (loaded once at startup)
+# Configuration (override with Space "Variables" / environment variables)
 # -------------------------------
-EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+EMBED_MODEL_NAME = os.getenv("EMBED_MODEL_NAME", "BAAI/bge-small-en-v1.5")
+MAX_INPUT_CHARS = int(os.getenv("MAX_INPUT_CHARS", "20000"))
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
+RATE_LIMIT_WINDOW_SECONDS = float(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+CHUNK_CHARS = 1200  # ~300 tokens, safely under BGE's 512-token window
+
+FUZZY_MATCH_THRESHOLD = 85
+SEMANTIC_MATCH_THRESHOLD = 0.55
+# Raw BGE cosine similarity of related texts clusters in ~0.45-0.85, so using
+# it directly as a percentage under-reports good matches. These bounds are a
+# heuristic linear rescale -- tune them against labelled resume/JD pairs.
+COSINE_FLOOR = 0.45
+COSINE_CEIL = 0.85
+
+# -------------------------------
+# Models (loaded once at startup)
+# -------------------------------
 model = SentenceTransformer(EMBED_MODEL_NAME)
-kw_model = KeyBERT(model=model)  # reuses the same embedding model, no extra download
-
+kw_model = KeyBERT(model=model)  # reuses the same embedding model
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+
+taxonomy = load_default_taxonomy()
+rate_limiter = SlidingWindowRateLimiter(RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS)
 
 
 def embed(text, is_query=False, **kwargs):
-    if isinstance(text, str):
-        text = BGE_QUERY_PREFIX + text if is_query else text
+    if isinstance(text, str) and is_query:
+        text = BGE_QUERY_PREFIX + text
     return model.encode(text, normalize_embeddings=True, **kwargs)
 
 
-# -------------------------------
-# Tier 1: vetted skills taxonomy (MIND Tech Ontology, MIT licensed)
-# https://github.com/MIND-TechAI/MIND-tech-ontology -- 3,333 skills with
-# synonyms and implied-skill relationships, built specifically to solve
-# the "React vs React.js", "Next.js implies React implies JavaScript"
-# problem that a hand-written list can't cover.
-# -------------------------------
-TAXONOMY_PATH = os.path.join(os.path.dirname(__file__), "skills_taxonomy.json")
-
-with open(TAXONOMY_PATH, "r") as f:
-    _TAXONOMY = json.load(f)
-
-# synonym (lowercased) -> canonical skill name
-_SYNONYM_TO_CANONICAL = {}
-# canonical name -> set of directly implied canonical skills
-_IMPLIES = {}
-
-for entry in _TAXONOMY:
-    canonical = entry["name"]
-    # Always include the canonical name itself as a matchable term -- some
-    # taxonomy entries list only variant synonyms (e.g. "Java" has synonyms
-    # like "JDK"/"Java8" but not the plain word "Java" itself).
-    all_terms = set(entry.get("synonyms", []) or []) | {canonical}
-    for syn in all_terms:
-        _SYNONYM_TO_CANONICAL[syn.lower()] = canonical
-    _IMPLIES[canonical] = set(entry.get("impliesKnowingSkills", []) or [])
-
-# flashtext handles word-boundary-safe matching over thousands of terms in
-# a single pass, instead of running 3,333+ individual regexes per document.
-_KEYWORD_PROCESSOR = KeywordProcessor(case_sensitive=False)
-for syn, canonical in _SYNONYM_TO_CANONICAL.items():
-    _KEYWORD_PROCESSOR.add_keyword(syn, canonical)
+def split_chunks(text, max_chars=CHUNK_CHARS):
+    """Greedily pack lines into chunks so nothing is lost to 512-token truncation."""
+    chunks, current = [], ""
+    for line in (l.strip() for l in text.split("\n")):
+        if not line:
+            continue
+        while len(line) > max_chars:  # very long single line
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.append(line[:max_chars])
+            line = line[max_chars:]
+        if current and len(current) + len(line) + 1 > max_chars:
+            chunks.append(current)
+            current = line
+        else:
+            current = f"{current}\n{line}" if current else line
+    if current:
+        chunks.append(current)
+    return chunks or [text]
 
 
-def confirmed_skills(text):
-    """Tier 1: match against the vetted taxonomy. Returns canonical skill
-    names actually found in the text -- high precision, near-zero noise."""
-    if not text:
-        return set()
-    return set(_KEYWORD_PROCESSOR.extract_keywords(text))
+def embed_long(text, is_query=False):
+    """Mean-pool chunk embeddings into one unit vector for the whole document."""
+    chunks = split_chunks(text)
+    if is_query:
+        chunks = [BGE_QUERY_PREFIX + c for c in chunks]
+    vecs = model.encode(chunks, normalize_embeddings=True)
+    mean = np.asarray(vecs).mean(axis=0)
+    return mean / (np.linalg.norm(mean) or 1.0)
 
 
-def expand_with_implied(skills):
-    """If a resume states 'Next.js', credit it with 'React' and
-    'JavaScript' too, since the taxonomy encodes that relationship.
-    Simple closure with cycle protection."""
-    expanded = set(skills)
-    frontier = set(skills)
-    seen = set(skills)
-    for _ in range(5):  # cap depth so a cyclic graph can't loop forever
-        next_frontier = set()
-        for skill in frontier:
-            for implied in _IMPLIES.get(skill, set()):
-                if implied not in seen:
-                    next_frontier.add(implied)
-                    seen.add(implied)
-        if not next_frontier:
-            break
-        expanded |= next_frontier
-        frontier = next_frontier
-    return expanded
+def calibrate_semantic(cosine):
+    """Linear rescale of raw cosine similarity to a 0-100 score."""
+    scaled = (cosine - COSINE_FLOOR) / (COSINE_CEIL - COSINE_FLOOR)
+    return round(min(max(scaled, 0.0), 1.0) * 100, 2)
 
 
 # -------------------------------
-# Tier 2: dynamic keyphrase extraction (gap-filler for anything the
-# taxonomy doesn't know about yet -- new tools, niche jargon, typos)
+# Tier 2: dynamic keyphrase extraction (gap-filler for what the taxonomy
+# doesn't know -- new tools, niche jargon, typos)
 # -------------------------------
 def extract_keyphrases(text, top_n=15):
     if not text or not text.strip():
@@ -108,16 +111,14 @@ def extract_keyphrases(text, top_n=15):
     return [phrase.strip().lower() for phrase, _ in raw if len(phrase.strip()) >= 2]
 
 
-FUZZY_MATCH_THRESHOLD = 85
-SEMANTIC_MATCH_THRESHOLD = 0.55
-
-
 def tier2_unverified_keywords(jd_keyphrases, resume_text, resume_keyphrases, already_confirmed_jd):
-    """Only look at JD keyphrases that Tier 1 didn't already recognize as
-    a taxonomy skill, so Tier 2 is purely the gap-filler, not a duplicate
-    of Tier 1's work."""
+    """Only JD keyphrases Tier 1 didn't already recognise, so Tier 2 is purely
+    the gap-filler and never double-counts Tier 1."""
     confirmed_lower = {s.lower() for s in already_confirmed_jd}
-    candidates = [p for p in jd_keyphrases if not any(fuzz.ratio(p, c) > 85 for c in confirmed_lower)]
+    candidates = [
+        p for p in jd_keyphrases
+        if not any(fuzz.ratio(p, c) > FUZZY_MATCH_THRESHOLD for c in confirmed_lower)
+    ]
     if not candidates:
         return [], []
 
@@ -141,100 +142,36 @@ def tier2_unverified_keywords(jd_keyphrases, resume_text, resume_keyphrases, alr
 
 
 # -------------------------------
-# Resume Quality Heuristics (general writing conventions, not a skill
-# taxonomy -- these don't go stale the way a tech-skills list does)
+# Core analysis (returns a JSON-serialisable dict -- this is the API contract)
 # -------------------------------
-ACTION_VERBS = [
-    "led", "built", "developed", "designed", "implemented", "optimized",
-    "achieved", "managed", "created", "increased", "reduced", "launched",
-    "automated", "architected", "improved", "streamlined", "delivered",
-    "spearheaded", "engineered", "deployed", "migrated", "mentored",
-    "analyzed", "researched", "collaborated", "presented", "negotiated",
-]
+def analyze(resume_text, job_description):
+    cosine = float(np.dot(embed_long(resume_text), embed_long(job_description, is_query=True)))
+    semantic_score = calibrate_semantic(cosine)
 
-SECTION_KEYWORDS = {
-    "experience": ["experience", "employment", "work history"],
-    "education": ["education", "academic", "b.tech", "degree", "university", "college"],
-    "skills": ["skills", "technical skills", "competencies"],
-    "projects": ["projects", "portfolio"],
-}
+    # Tier 1: vetted taxonomy
+    jd_confirmed = taxonomy.confirmed_skills(job_description)
+    resume_raw = taxonomy.confirmed_skills(resume_text)
+    resume_effective = taxonomy.expand_with_implied(resume_raw)
+    matched_confirmed = jd_confirmed & resume_effective
+    missing_confirmed = jd_confirmed - resume_effective
+    implied_only = {s for s in matched_confirmed if s not in resume_raw}
 
-QUANT_PATTERN = re.compile(r"\d+(\.\d+)?\s?(%|x|\+)|\$\s?\d|\b\d{2,}\b")
-
-
-def resume_quality_signals(resume_text):
-    text_lower = resume_text.lower()
-    lines = [l.strip() for l in resume_text.split("\n") if l.strip()]
-
-    action_verb_lines = sum(
-        1 for l in lines if any(f" {v} " in f" {l.lower()} " or l.lower().startswith(v) for v in ACTION_VERBS)
-    )
-    quantified_lines = sum(1 for l in lines if QUANT_PATTERN.search(l))
-
-    sections_found = {s: any(kw in text_lower for kw in kws) for s, kws in SECTION_KEYWORDS.items()}
-    sections_present = sum(sections_found.values())
-
-    verb_score = min(action_verb_lines / max(len(lines), 1), 0.5) * 2
-    quant_score = min(quantified_lines / max(len(lines), 1), 0.3) / 0.3
-    section_score = sections_present / len(SECTION_KEYWORDS)
-
-    quality_score = round((0.4 * verb_score + 0.35 * quant_score + 0.25 * section_score) * 100, 2)
-    missing_sections = [s for s, present in sections_found.items() if not present]
-
-    return {
-        "quality_score": quality_score,
-        "action_verb_lines": action_verb_lines,
-        "quantified_lines": quantified_lines,
-        "missing_sections": missing_sections,
-    }
-
-
-# -------------------------------
-# Main Analysis
-# -------------------------------
-def analyze_resume(resume_text, job_description):
-    if not resume_text or not job_description:
-        return "Please provide both Resume and Job Description."
-
-    # Semantic similarity (JD as query, resume as document)
-    resume_emb = embed(resume_text, is_query=False, convert_to_tensor=True)
-    jd_emb = embed(job_description, is_query=True, convert_to_tensor=True)
-    semantic_score = round(util.cos_sim(resume_emb, jd_emb).item() * 100, 2)
-
-    # --- Tier 1: vetted taxonomy match ---
-    jd_confirmed = confirmed_skills(job_description)
-    resume_confirmed_raw = confirmed_skills(resume_text)
-    resume_confirmed_effective = expand_with_implied(resume_confirmed_raw)  # credit implied skills
-
-    matched_confirmed = jd_confirmed & resume_confirmed_effective
-    missing_confirmed = jd_confirmed - resume_confirmed_effective
-    implied_only = {
-        s for s in matched_confirmed
-        if s not in resume_confirmed_raw  # matched only via an implied relationship, not stated directly
-    }
-
-    # --- Tier 2: dynamic gap-filler for anything Tier 1 didn't recognize ---
+    # Tier 2: gap-filler
     jd_keyphrases = extract_keyphrases(job_description, top_n=15)
     resume_keyphrases = extract_keyphrases(resume_text, top_n=20)
     tier2_matched, tier2_missing = tier2_unverified_keywords(
         jd_keyphrases, resume_text, resume_keyphrases, jd_confirmed
     )
 
-    # Overall coverage ratio blends both tiers, weighting confirmed higher
-    total_jd_items = len(jd_confirmed) + len(tier2_matched) + len(tier2_missing)
-    total_matched_items = len(matched_confirmed) + len(tier2_matched)
-    coverage_ratio = (total_matched_items / total_jd_items) if total_jd_items else 1.0
+    total_items = len(jd_confirmed) + len(tier2_matched) + len(tier2_missing)
+    matched_items = len(matched_confirmed) + len(tier2_matched)
+    coverage_ratio = (matched_items / total_items) if total_items else 1.0
 
     quality = resume_quality_signals(resume_text)
-
     final_score = round(
-        0.45 * semantic_score
-        + 0.35 * (coverage_ratio * 100)
-        + 0.20 * quality["quality_score"],
-        2,
+        0.45 * semantic_score + 0.35 * (coverage_ratio * 100) + 0.20 * quality["quality_score"], 2
     )
 
-    # Suggestions
     suggestions = []
     if missing_confirmed:
         suggestions.append(
@@ -257,58 +194,100 @@ def analyze_resume(resume_text, job_description):
     if not suggestions:
         suggestions.append("Strong match -- resume aligns well with this job description.")
 
-    matched_confirmed_str = ", ".join(sorted(matched_confirmed)) if matched_confirmed else "None"
-    implied_note = f" (of which via implied skills: {', '.join(sorted(implied_only))})" if implied_only else ""
-    missing_confirmed_str = ", ".join(sorted(missing_confirmed)) if missing_confirmed else "None"
-    tier2_matched_str = ", ".join(tier2_matched) if tier2_matched else "None"
-    tier2_missing_str = ", ".join(tier2_missing) if tier2_missing else "None"
+    return {
+        "version": __version__,
+        "scores": {
+            "overall": final_score,
+            "semantic": semantic_score,
+            "semantic_raw_cosine": round(cosine, 4),
+            "coverage": round(coverage_ratio * 100, 2),
+            "quality": quality["quality_score"],
+        },
+        "confirmed_skills": {
+            "matched": sorted(matched_confirmed),
+            "missing": sorted(missing_confirmed),
+            "matched_via_implication": sorted(implied_only),
+        },
+        "other_keywords": {"matched": tier2_matched, "missing": tier2_missing},
+        "quality_signals": {
+            "action_verb_lines": quality["action_verb_lines"],
+            "quantified_lines": quality["quantified_lines"],
+            "missing_sections": quality["missing_sections"],
+        },
+        "suggestions": suggestions,
+    }
 
-    result = f"""
+
+def format_report(r):
+    s, c, k, q = r["scores"], r["confirmed_skills"], r["other_keywords"], r["quality_signals"]
+    join = lambda items: ", ".join(items) if items else "None"
+    implied_note = (
+        f" (of which via implied skills: {', '.join(c['matched_via_implication'])})"
+        if c["matched_via_implication"]
+        else ""
+    )
+    return f"""
 1. OVERALL MATCH SCORE
-{final_score}%  (semantic {semantic_score}% . coverage {round(coverage_ratio * 100, 2)}% . resume quality {quality['quality_score']}%)
+{s['overall']}%  (semantic {s['semantic']}% . coverage {s['coverage']}% . resume quality {s['quality']}%)
 
 2. CONFIRMED SKILLS -- MATCHED (vetted taxonomy){implied_note}
-{matched_confirmed_str}
+{join(c['matched'])}
 
 3. CONFIRMED SKILLS -- MISSING (vetted taxonomy)
-{missing_confirmed_str}
+{join(c['missing'])}
 
 4. OTHER KEYWORDS DETECTED IN RESUME (unverified, AI-extracted)
-{tier2_matched_str}
+{join(k['matched'])}
 
 5. OTHER KEYWORDS MISSING (unverified, AI-extracted -- double-check these manually)
-{tier2_missing_str}
+{join(k['missing'])}
 
 6. RESUME QUALITY SIGNALS
-Action-verb bullet lines: {quality['action_verb_lines']}
-Quantified achievement lines: {quality['quantified_lines']}
-Missing sections: {', '.join(quality['missing_sections']) if quality['missing_sections'] else 'None'}
+Action-verb bullet lines: {q['action_verb_lines']}
+Quantified achievement lines: {q['quantified_lines']}
+Missing sections: {join(q['missing_sections'])}
 
 7. SUGGESTIONS
-{chr(10).join(f'- {s}' for s in suggestions)}
-"""
-    return result.strip()
+{chr(10).join(f'- {x}' for x in r['suggestions'])}
+""".strip()
 
 
 # -------------------------------
-# Gradio Interface
+# Request handling: validation + rate limiting
 # -------------------------------
-interface = gr.Interface(
-    fn=analyze_resume,
-    inputs=[
-        gr.Textbox(lines=12, label="Resume Text"),
-        gr.Textbox(lines=12, label="Job Description"),
-    ],
-    outputs=gr.Textbox(lines=26, label="Analysis Result"),
-    title="AI Resume & Job Match Analyzer",
-    description=(
-        "Compares a resume with a job description using BGE embeddings, a vetted 3,300+ "
-        "skill taxonomy (MIND Tech Ontology) for high-confidence matching, and dynamic "
-        "keyphrase extraction as a gap-filler for anything the taxonomy misses."
-    ),
-    examples=[
-        [
-            """Name: Ananya Verma
+def client_key(request):
+    """Best-effort client identity. On HF Spaces the proxy sets X-Forwarded-For;
+    outside a trusted proxy that header is client-controlled (see docs)."""
+    if request is None:
+        return "anonymous"
+    forwarded = request.headers.get("x-forwarded-for") if request.headers else None
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "anonymous"
+
+
+def handle_request(resume_text, job_description, request: gr.Request = None):
+    if not resume_text or not resume_text.strip() or not job_description or not job_description.strip():
+        raise gr.Error("Please provide both Resume and Job Description.")
+    if len(resume_text) > MAX_INPUT_CHARS or len(job_description) > MAX_INPUT_CHARS:
+        raise gr.Error(f"Input too long (max {MAX_INPUT_CHARS} characters each).")
+    try:
+        rate_limiter.check(client_key(request))
+    except RateLimitExceeded as e:
+        raise gr.Error(
+            f"Rate limit exceeded ({RATE_LIMIT_REQUESTS} requests / {int(RATE_LIMIT_WINDOW_SECONDS)}s). "
+            f"Try again in {e.retry_after:.0f}s."
+        )
+    result = analyze(resume_text, job_description)
+    return format_report(result), result
+
+
+# -------------------------------
+# Gradio UI (the same click handler is exposed as the public API: /analyze)
+# -------------------------------
+EXAMPLES = [
+    [
+        """Name: Ananya Verma
 
 Summary:
 Data Analyst with experience in data processing and visualization, looking to transition into machine learning roles.
@@ -324,7 +303,7 @@ Experience:
 Education:
 M.Sc in Data Science
 """,
-            """Job Title: NLP / Machine Learning Engineer
+        """Job Title: NLP / Machine Learning Engineer
 
 Requirements:
 - Strong experience in Python and Machine Learning
@@ -334,14 +313,37 @@ Requirements:
 - Knowledge of SQL and data processing tools
 - Experience deploying ML models is a plus
 """,
-        ],
-        [
-            "Experienced Python developer with strong background in machine learning, NLP, and data science.",
-            "Looking for a data scientist skilled in Python, machine learning, NLP, SQL, and Hugging Face.",
-        ],
     ],
-)
+    [
+        "Experienced Python developer with strong background in machine learning, NLP, and data science.",
+        "Looking for a data scientist skilled in Python, machine learning, NLP, SQL, and Hugging Face.",
+    ],
+]
 
+with gr.Blocks(title="AI Resume & Job Match Analyzer") as demo:
+    gr.Markdown(
+        "# AI Resume & Job Match Analyzer\n"
+        "Compares a resume with a job description using BGE embeddings, a vetted 3,300+ skill "
+        "taxonomy (MIND Tech Ontology) for high-confidence matching, and KeyBERT keyphrase "
+        "extraction as a gap-filler. Open source (MIT) -- free API usage: see the "
+        "**Use via API** link in the footer."
+    )
+    with gr.Row():
+        resume_in = gr.Textbox(lines=12, label="Resume Text")
+        jd_in = gr.Textbox(lines=12, label="Job Description")
+    run_btn = gr.Button("Analyze", variant="primary")
+    report_out = gr.Textbox(lines=26, label="Analysis Result")
+    with gr.Accordion("Structured JSON (same payload the API returns)", open=False):
+        json_out = gr.JSON(label="JSON")
+    gr.Examples(examples=EXAMPLES, inputs=[resume_in, jd_in])
+    run_btn.click(
+        handle_request,
+        inputs=[resume_in, jd_in],
+        outputs=[report_out, json_out],
+        api_name="analyze",
+    )
+
+demo.queue(default_concurrency_limit=2, max_size=20)
 
 if __name__ == "__main__":
-    interface.launch()
+    demo.launch()
